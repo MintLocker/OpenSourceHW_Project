@@ -35,7 +35,7 @@ https://arduino.esp8266.com/stable/package_esp8266com_index.json 추가
 
 ---
 
-## OpenSourceHW1
+## OpenSourceHW_1
 
 ### 사용 하드웨어
 
