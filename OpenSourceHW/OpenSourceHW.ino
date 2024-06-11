@@ -5,15 +5,20 @@
 #include "TOTP.h" //TOTP 헤더
 #include <Keypad.h> //키패드 헤더
 #include <LiquidCrystal_I2C.h> //I2C LCD 헤더
+#include <Ticker.h> //타이머 인터럽트 헤더
 
-/*===Pakcet Data=============================================================*/
-#define OPEN 0x01
-#define CLOSE 0x00 //해당 코드에서는 사용되지 않으나 기능 확장용으로 추가
-#define ALERT 0x10
+/*===Pakcet==================================================================*/
+#define ACK 0xE0
+#define NAK 0xF0
+#define OP 0x01
+#define CL 0x02 //해당 코드에서는 사용되지 않으나 기능 확장용으로 추가
+#define AL 0x10
+
+char packet[4] = {0x47, 0x00, 0x00, 0x0A};
 
 /*===WiFi & UDP & NTP========================================================*/
-const char* ssid = "YOUR_WIFI"; //WiFi 이름
-const char* password = "YOUR_WIFI_PASS"; //WiFi 비밀번호
+const char* ssid = "wsNetwork"; //WiFi 이름
+const char* password = "01234567"; //WiFi 비밀번호
 
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "pool.ntp.org");
@@ -46,12 +51,15 @@ char wrong = 0;
 
 char input[6];
 
-/*===OTP================================================================*/
+/*===OTP=====================================================================*/
 uint8_t hmacKey [] = {0x4d, 0x79, 0x4c, 0x65, 0x67, 0x6f, 0x44, 0x6f, 0x6f, 0x72};
 char hmacKeyLen = sizeof(hmacKey) / sizeof(hmacKey[0]);
 TOTP totp = TOTP(hmacKey, hmacKeyLen);
 
 char code[7];
+
+/*===Timer===================================================================*/
+Ticker timer;
 
 /*===Function================================================================*/
 //NTP 서버에서 시간 가져오는 함수
@@ -119,7 +127,9 @@ void inputKeypad(char key){
 
     if (position >= 11) { // 6자리 전부 입력된 경우
       if (cmpOTP()) { // 비밀번호 일치한 경우
-        sendPacket(OPEN);
+        packet[1] = OP;
+        packet[2] = packet[1] ^ 0xFF;
+        timer.attach(10, sendPacket);
         position = 5;
         wrong = 0;
         lcd.setCursor(position, 1);
@@ -131,7 +141,9 @@ void inputKeypad(char key){
         lcd.setCursor(position, 1);
         lcd.print("WRONG!");
         if(wrong >= 5) {
-          sendPacket(ALERT);
+          packet[1] = AL;
+          packet[2] = packet[1] ^ 0xFF;
+          timer.attach(10, sendPacket);
           wrong = 0;
         }
       }
@@ -140,13 +152,7 @@ void inputKeypad(char key){
 }
 
 //패킷 전송 함수
-void sendPacket(char data) {
-  char packet[4];
-  packet[0] = 0x47;       // 시작 바이트
-  packet[1] = data;       // 데이터
-  packet[2] = data ^ 0xFF; // 체크섬
-  packet[3] = 0x0A;       // 종료 바이트
-
+void sendPacket() {
   for (byte i = 0; i < 4; i++) {
     Serial.write(packet[i]);
   }
@@ -160,7 +166,7 @@ void setup() {
 
   //serial init
   Serial.begin(115200);
-  
+
   //lcd init
   lcd.init();
   lcd.backlight();
@@ -184,5 +190,21 @@ void loop() {
 
   if(key){
     inputKeypad(key);
+  }
+}
+
+/*===Serial Event============================================================*/
+void serialEvent() {
+  if(Serial.available()){
+    byte read_data = Serial.read();
+    if(read_data == ACK){
+      timer.detach();
+      packet[1] = 0x00;
+      packet[2] = 0x00;
+    }
+    else if(read_data == NAK){
+      timer.detach();
+      timer.attach(10, sendPacket);
+    }
   }
 }
