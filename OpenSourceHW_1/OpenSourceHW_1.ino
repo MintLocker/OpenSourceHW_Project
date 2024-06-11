@@ -3,9 +3,11 @@
 #include <SoftwareSerial.h> //블루투스 통신용 헤더
 
 /*===Packet==========================================*/
-byte packet[4];
-char packetIndex = 0;
-bool packetStarted = false;
+#define ACK 0xE0
+#define NAK 0xF0
+#define OP 0x01
+#define CL 0x02 //해당 코드에서는 사용되지 않으나 기능 확장용으로 추가
+#define AL 0x10
 
 /*===Bluetooth=======================================*/
 const char tx = 5;
@@ -48,8 +50,7 @@ void closeLocker()
   int curCm = cm;
   interrupts();
   if(curCm < 5){
-    Serial.println("locked!");
-    digitalWrite(gLedPin, HIGH);
+    digitalWrite(rLedPin, HIGH);
     locked = true;
     servo.write(90);
   }
@@ -123,11 +124,15 @@ void loop() {
 
 /*===Serial Event====================================*/
 void serialEvent() {
+  byte packet[4];
+  char packetIndex = 0;
+  bool packetStarted = false;
   while (Serial.available()) {
     char inputByte = Serial.read();
 
     if (!packetStarted) {
       if (inputByte == 0x47) { // 시작 바이트 확인
+
         packetStarted = true;
         packetIndex = 0;
         packet[packetIndex++] = inputByte;
@@ -135,28 +140,28 @@ void serialEvent() {
     } else {
       packet[packetIndex++] = inputByte;
 
-      if (packetIndex == 4) {
+      if (packetIndex == 4) { // 패킷 전체가 올바른 경우 데이터 처리
         if (packet[3] == 0x0A) { // 종료 바이트 확인
           if (packet[1] | packet[2] == 0xFF) { // 체크섬 확인
-            if (packet[1] == 0x01) { // 패킷 전체가 올바른 경우 데이터 처리
+            if (packet[1] == OP) { //OPEN
               locked = false;
               servo.write(0);
-              Serial.println("unlocked!");
-            } else if(packet[1] == 0x00) {
+              Serial.write(ACK);
+            } else if(packet[1] == CL) { //CLOSE
               locked = true;
               servo.write(90);
-              Serial.println("locked!");
-            } else if (packet[1] == 0x10) {
+              Serial.write(ACK);
+            } else if (packet[1] == AL) { //ALERT
               locked = true;
               digitalWrite(gLedPin, LOW);
-              Serial.println("ALERT!!!");
+              Serial.write(ACK);
               MsTimer2::start();
             }
           } else {
-            Serial.println("Checksum error"); // 체크섬 오류
+            Serial.write(NAK); // 체크섬 오류
           }
         } else {
-          Serial.println("End byte error"); // 종료 바이트 오류
+          Serial.write(NAK); // 종료 바이트 오류
         }
         packetStarted = false;
         packetIndex = 0;
