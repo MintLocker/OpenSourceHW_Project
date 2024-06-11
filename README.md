@@ -2,7 +2,7 @@
 
 **Smart Locker with TOTP - TOTP를 이용한 스마트 보관함** 
 
-## OpenSourceHW
+## OpenSourceHW.ino
 
 ### 사용 하드웨어
 
@@ -35,7 +35,7 @@ https://arduino.esp8266.com/stable/package_esp8266com_index.json 추가
 
 ---
 
-## OpenSourceHW_1
+## OpenSourceHW_1.ino
 
 ### 사용 하드웨어
 
