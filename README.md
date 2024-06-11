@@ -23,6 +23,8 @@ https://arduino.esp8266.com/stable/package_esp8266com_index.json 추가
 
 - KeyPad
 
+- Ticker
+
 ### 설명
 
 보관함 OTP와 관련된 작업을 하는 코드입니다.
