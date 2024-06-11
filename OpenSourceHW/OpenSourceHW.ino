@@ -17,8 +17,8 @@
 char packet[4] = {0x47, 0x00, 0x00, 0x0A};
 
 /*===WiFi & UDP & NTP========================================================*/
-const char* ssid = "wsNetwork"; //WiFi 이름
-const char* password = "01234567"; //WiFi 비밀번호
+const char* ssid = "YOUR_WIFI"; //WiFi 이름
+const char* password = "YOUR_WIFI_PASSWORD"; //WiFi 비밀번호
 
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "pool.ntp.org");
