@@ -104,11 +104,10 @@ void loop() {
   duration = pulseIn(echoPin, HIGH);
   cm = microsecondsToCentimeters(duration);
 
-  /*
   if(locked && cm > 5 ){ //잠금 상태에서 초음파 센서 값 일정 이상이면 경고
     MsTimer2::start();
   }
-  */
+
   //bluetooth
   if(BTSerial.available()){
     char recieve = BTSerial.read();
