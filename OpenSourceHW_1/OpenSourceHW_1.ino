@@ -15,8 +15,8 @@ const char rx = 6;
 SoftwareSerial BTSerial(tx, rx);
 
 /*===LED, Buzzer=====================================*/
-const char rLedPin = 10;
-const char gLedPin = 9;
+const char rLedPin = 9;
+const char gLedPin = 10;
 const char buzPin = 8;
 bool state = LOW;
 bool isAlert = false;
