@@ -15,10 +15,11 @@ const char rx = 6;
 SoftwareSerial BTSerial(tx, rx);
 
 /*===LED, Buzzer=====================================*/
-const char rLedPin = 9;
-const char gLedPin = 8;
-const char buzPin = 7;
+const char rLedPin = 10;
+const char gLedPin = 9;
+const char buzPin = 8;
 bool state = LOW;
+bool isAlert = false;
 
 /*===Ultrasonic======================================*/
 const char trigPin = 13;
@@ -46,14 +47,10 @@ void alert() {
 //버튼 인터럽트 함수
 void closeLocker()  
 {
-  noInterrupts();
-  int curCm = cm;
-  interrupts();
-  if(curCm < 5){
-    digitalWrite(rLedPin, HIGH);
-    locked = true;
-    servo.write(90);
-  }
+  digitalWrite(rLedPin, HIGH);
+  locked = true;
+  servo.write(90);
+  Serial.write(CL);
 }
 
 //초음파 센서 값 cm로 변환 함수
@@ -104,10 +101,13 @@ void loop() {
   duration = pulseIn(echoPin, HIGH);
   cm = microsecondsToCentimeters(duration);
 
-  if(locked && cm > 5 ){ //잠금 상태에서 초음파 센서 값 일정 이상이면 경고
+  Serial.println(cm);
+  
+  if(locked && cm > 20 && !isAlert && locked){ //잠금 상태에서 초음파 센서 값 일정 이상이면 경고
+    isAlert = true;
     MsTimer2::start();
   }
-
+  
   //bluetooth
   if(BTSerial.available()){
     char recieve = BTSerial.read();
@@ -142,6 +142,7 @@ void serialEvent() {
       if (packetIndex == 4) { // 패킷 전체가 올바른 경우 데이터 처리
         if (packet[3] == 0x0A) { // 종료 바이트 확인
           if (packet[1] | packet[2] == 0xFF) { // 체크섬 확인
+            Serial.println("received!");
             if (packet[1] == OP) { //OPEN
               locked = false;
               servo.write(0);
