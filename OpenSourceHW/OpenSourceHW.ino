@@ -16,9 +16,10 @@
 
 char packet[4] = {0x47, 0x00, 0x00, 0x0A};
 
+char timeoutCnt = 0;
 /*===WiFi & UDP & NTP========================================================*/
-const char* ssid = "YOUR_WIFI"; //WiFi 이름
-const char* password = "YOUR_WIFI_PASSWORD"; //WiFi 비밀번호
+const char* ssid = "wsNetwork"; //WiFi 이름
+const char* password = "01234567"; //WiFi 비밀번호
 
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "pool.ntp.org");
@@ -94,7 +95,7 @@ bool cmpOTP()
 //LCD 출력
 void printLCD(){
   lcd.setCursor(1,0);
-  lcd.print("Input OTP Code");
+  lcd.print(timeoutCnt <= 3 ? "Input OTP Code" : "Timeout Alert!");
   lcd.setCursor(5,1);
   lcd.print("******");
 }
@@ -156,6 +157,8 @@ void sendPacket() {
   for (byte i = 0; i < 4; i++) {
     Serial.write(packet[i]);
   }
+  timeoutCnt = timeoutCnt > 200 ? (timeoutCnt + 1) : 4; //오버플로 방지
+  
 }
 
 /*===Main====================================================================*/
@@ -201,10 +204,18 @@ void serialEvent() {
       timer.detach();
       packet[1] = 0x00;
       packet[2] = 0x00;
+      timeoutCnt = 0;
+      Serial.println("Success!");
     }
     else if(read_data == NAK){
       timer.detach();
+      timeoutCnt = 0;
       timer.attach(10, sendPacket);
+    }
+    else if(read_data == CL){
+        position = 5;
+        lcd.setCursor(position, 1);
+        lcd.print("CLOSE!");
     }
   }
 }
