@@ -11,7 +11,7 @@
 #define ACK 0xE0
 #define NAK 0xF0
 #define OP 0x01
-#define CL 0x02 //해당 코드에서는 사용되지 않으나 기능 확장용으로 추가
+#define CL 0x02
 #define AL 0x10
 
 char packet[4] = {0x47, 0x00, 0x00, 0x0A};
