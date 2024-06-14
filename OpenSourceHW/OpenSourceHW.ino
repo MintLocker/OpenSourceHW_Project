@@ -95,7 +95,7 @@ bool cmpOTP()
 //LCD 출력
 void printLCD(){
   lcd.setCursor(1,0);
-  lcd.print(timeoutCnt <= 3 ? "Input OTP Code" : "Timeout Alert!");
+  lcd.print(timeoutCnt <= 2 ? "Input OTP Code" : "Timeout Alert!");
   lcd.setCursor(5,1);
   lcd.print("******");
 }
@@ -130,7 +130,7 @@ void inputKeypad(char key){
       if (cmpOTP()) { // 비밀번호 일치한 경우
         packet[1] = OP;
         packet[2] = packet[1] ^ 0xFF;
-        timer.attach(10, sendPacket);
+        sendPacketWithTimer();
         position = 5;
         wrong = 0;
         lcd.setCursor(position, 1);
@@ -144,7 +144,7 @@ void inputKeypad(char key){
         if(wrong >= 5) {
           packet[1] = AL;
           packet[2] = packet[1] ^ 0xFF;
-          timer.attach(10, sendPacket);
+          sendPacketWithTimer();
           wrong = 0;
         }
       }
@@ -157,8 +157,19 @@ void sendPacket() {
   for (byte i = 0; i < 4; i++) {
     Serial.write(packet[i]);
   }
-  timeoutCnt = timeoutCnt > 200 ? (timeoutCnt + 1) : 4; //오버플로 방지
-  
+  timeoutCnt = timeoutCnt > 200 ? (timeoutCnt + 1) : 4; //오버플로 방지  
+}
+
+//타이머 인터럽트 사용 패킷 전송 함수
+void sendPacketWithTimer() {
+  sendPacket();
+  timer.attach(10, sendPacket);
+}
+
+//타이머 중단
+void timerDetach(){
+  timer.detach();
+  timeoutCnt = 0;
 }
 
 /*===Main====================================================================*/
@@ -201,16 +212,14 @@ void serialEvent() {
   if(Serial.available()){
     byte read_data = Serial.read();
     if(read_data == ACK){
-      timer.detach();
+      timerDetach();
       packet[1] = 0x00;
       packet[2] = 0x00;
-      timeoutCnt = 0;
       Serial.println("Success!");
     }
     else if(read_data == NAK){
-      timer.detach();
-      timeoutCnt = 0;
-      timer.attach(10, sendPacket);
+      timerDetach();
+      sendPacketWithTimer();
     }
     else if(read_data == CL){
         position = 5;
